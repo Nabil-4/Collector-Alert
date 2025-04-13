@@ -1,3 +1,5 @@
+// background.js
+
 // URL de base
 const BASE_URL = "https://chocobonplan.com/bons-plans/c/editions-collectors/";
 const DOMAIN = "https://chocobonplan.com";
@@ -32,6 +34,7 @@ function getImageUrl(imageElement) {
 // Fonction pour récupérer les collectors sur une page donnée
 async function fetchCollectorsFromPage(page = 1) {
   const url = page === 1 ? BASE_URL : `${BASE_URL}page/${page}/?orderby=date`;
+  console.log(`Récupération de la page ${page}: ${url}`);
   try {
     const response = await fetch(url);
     if (!response.ok) {
@@ -45,9 +48,11 @@ async function fetchCollectorsFromPage(page = 1) {
 
     // Vérifier s'il y a une page suivante
     const hasNextPage = !!doc.querySelector(`a[href*='page/${page + 1}/']`);
+    console.log(`Page suivante existe : ${hasNextPage}`);
 
     // Sélectionner les blocs de collectors
     const collectorBlocks = doc.querySelectorAll("article.box-corner.box-bp");
+    console.log(`Blocs trouvés sur page ${page} : ${collectorBlocks.length}`);
     const now = new Date();
     const sevenDaysAgo = new Date(now.setDate(now.getDate() - 7));
     
@@ -88,7 +93,7 @@ async function fetchCollectorsFromPage(page = 1) {
         const datetime = dateElement?.getAttribute("datetime") || "2025-04-13"; // Fallback à aujourd'hui
         const postDate = new Date(datetime);
         const isOlderThan7Days = postDate < sevenDaysAgo && !isNaN(postDate);
-        console.log(`Collector: ${title}, Date extraite: ${datetime}, Valide: ${!isNaN(postDate)}, Likes: ${likes}, Niveau max: ${isLevelMax}, Plus de 7 jours: ${isOlderThan7Days}`);
+        console.log(`Collector: ${title}, Likes: ${likes}, Niveau max: ${isLevelMax}, Plus de 7 jours: ${isOlderThan7Days}`);
 
         return { title, url, thumbnail, likes, price, postDate: postDate.toISOString(), isOlderThan7Days, isLevelMax };
       })
@@ -100,7 +105,7 @@ async function fetchCollectorsFromPage(page = 1) {
         return meetsLikes;
       });
 
-    console.log(`Collectors trouvés sur page ${page} :`, collectors);
+    console.log(`Collectors qualifiés sur page ${page} : ${collectors.length}`);
     return { collectors, hasNextPage };
   } catch (error) {
     console.error(`Erreur lors de la récupération de la page ${page} :`, error);
@@ -128,33 +133,47 @@ async function fetchCollectors() {
 // Fonction pour vérifier les nouveaux collectors
 async function checkForNewCollectors() {
   const newCollectors = await fetchCollectors();
-  console.log("Nouveaux collectors stockés :", newCollectors);
+  console.log("Nouveaux collectors à stocker :", newCollectors.length);
 
   // Récupérer l'état précédent
-  browser.storage.local.get("previousCollectors").then((data) => {
+  browser.storage.local.get(["previousCollectors"], (data) => {
+    console.log("Données storage.get :", data);
     const previousCollectors = data.previousCollectors || [];
-    const previousUrls = previousCollectors.map((c) => c.url);
+    console.log("Collectors précédents récupérés :", previousCollectors.length);
 
     // Détecter les nouveaux collectors
     const addedCollectors = newCollectors.filter(
-      (collector) => !previousUrls.includes(collector.url)
+      (collector) => !previousCollectors.some((prev) => prev.url === collector.url)
     );
+    console.log("Nouveaux collectors détectés :", addedCollectors.length);
 
     // Envoyer une notification si nouveaux collectors
     if (addedCollectors.length > 0) {
-      console.log("Notification envoyée pour :", addedCollectors);
+      console.log("Envoi notification pour :", addedCollectors.map(c => c.title));
       browser.notifications.create({
         type: "basic",
-        iconUrl: browser.runtime.getURL("icons/icon-48.png"),
+        iconUrl: browser.runtime.getURL("icons/box.png"),
         title: "Nouvelle Édition Collector !",
         message: `${addedCollectors.length} nouvelle(s) édition(s) détectée(s) : ${addedCollectors
           .map((c) => c.title)
           .join(", ")}`
+      }, (notificationId) => {
+        if (chrome.runtime.lastError) {
+          console.error("Erreur notification :", chrome.runtime.lastError.message);
+        } else {
+          console.log("Notification créée :", notificationId);
+        }
       });
     }
 
     // Mettre à jour le stockage
-    browser.storage.local.set({ previousCollectors: newCollectors });
+    browser.storage.local.set({ previousCollectors: newCollectors }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("Erreur stockage :", chrome.runtime.lastError.message);
+      } else {
+        console.log("Collectors stockés avec succès :", newCollectors.length);
+      }
+    });
   });
 }
 
@@ -166,9 +185,11 @@ browser.alarms.create("checkCollectors", {
 // Écouter les alarmes
 browser.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "checkCollectors") {
+    console.log("Alarme déclenchée : checkCollectors");
     checkForNewCollectors();
   }
 });
 
 // Vérifier au démarrage
+console.log("Extension démarrée, vérification initiale...");
 checkForNewCollectors();

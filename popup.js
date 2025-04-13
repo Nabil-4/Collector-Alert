@@ -1,8 +1,11 @@
-// Récupérer les collectors et la position du scroll depuis le stockage
-browser.storage.local.get(["previousCollectors", "scrollPosition"]).then((data) => {
-  const collectors = data.previousCollectors || [];
-  const scrollPosition = data.scrollPosition || 0;
+// popup.js
+
+browser.storage.local.get(["previousCollectors", "scrollPosition"], (data) => {
+  const collectors = Array.isArray(data.previousCollectors) ? data.previousCollectors : [];
+  const scrollPosition = Number(data.scrollPosition) || 0;
   const list = document.getElementById("collector-list");
+
+  if (!list) return;
 
   if (collectors.length === 0) {
     const div = document.createElement("div");
@@ -18,23 +21,23 @@ browser.storage.local.get(["previousCollectors", "scrollPosition"]).then((data) 
       imagePriceContainer.className = "image-price-container";
 
       const img = document.createElement("img");
-      img.src = collector.thumbnail;
-      img.alt = collector.title;
+      img.src = collector.thumbnail || "https://chocobonplan.com/wp-content/uploads/placeholder.png";
+      img.alt = collector.title || "Collector";
       img.className = "collector-image";
 
       const price = document.createElement("span");
-      price.textContent = `${collector.price.toFixed(2)}\u20AC`;
+      price.textContent = `${(collector.price || 0).toFixed(2)}\u20ac`;
       price.className = "collector-price";
 
       const a = document.createElement("a");
-      a.href = collector.url;
-      a.textContent = collector.title;
+      a.href = collector.url || "#";
+      a.textContent = (collector.title || "Sans titre").replace(/[\n\s]+/g, " ").trim();
       a.target = "_blank";
       a.className = "collector-title";
-      a.title = `Voir ${collector.title} sur le site`;
+      a.title = `Voir ${collector.title || "collector"} sur le site`;
 
       const likes = document.createElement("span");
-      likes.textContent = collector.isLevelMax ? "Max" : collector.likes;
+      likes.textContent = collector.isLevelMax ? "Max" : (collector.likes || 0);
       likes.className = "collector-likes";
 
       imagePriceContainer.appendChild(img);
@@ -45,12 +48,11 @@ browser.storage.local.get(["previousCollectors", "scrollPosition"]).then((data) 
       list.appendChild(div);
     });
 
-    // Restaurer la position du scroll
     list.scrollTop = scrollPosition;
   }
 
-  // Sauvegarder la position du scroll lors du défilement
   list.addEventListener("scroll", () => {
-    browser.storage.local.set({ scrollPosition: list.scrollTop });
+    const scrollTop = list.scrollTop;
+    browser.storage.local.set({ scrollPosition: scrollTop });
   });
 });

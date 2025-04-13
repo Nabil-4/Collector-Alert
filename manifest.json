@@ -2,24 +2,26 @@
     "manifest_version": 2,
     "name": "Collector Alert",
     "version": "1.0",
-    "description": "Notifie et affiche les dernières éditions collector de editioncollector.fr",
+    "description": "Monitors Chocobonplan for popular collector's editions and notifies you of new deals.",
     "permissions": [
         "alarms",
         "notifications",
         "storage",
-        "webRequest",
-        "<all_urls>"
+        "https://chocobonplan.com/*"
     ],
     "background": {
         "scripts": [
+            "polyfill.js",
             "background.js"
-        ]
+        ],
+        "persistent": false
     },
     "browser_action": {
         "default_popup": "popup.html",
-        "default_title": "Derniers Collectors"
+        "default_title": "Collector Alert"
     },
     "icons": {
         "48": "icons/box.png"
-    }
+    },
+    "content_security_policy": "script-src 'self'; object-src 'self'"
 }
