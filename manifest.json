@@ -1,0 +1,25 @@
+{
+    "manifest_version": 2,
+    "name": "Collector Alert",
+    "version": "1.0",
+    "description": "Notifie et affiche les dernières éditions collector de editioncollector.fr",
+    "permissions": [
+        "alarms",
+        "notifications",
+        "storage",
+        "webRequest",
+        "<all_urls>"
+    ],
+    "background": {
+        "scripts": [
+            "background.js"
+        ]
+    },
+    "browser_action": {
+        "default_popup": "popup.html",
+        "default_title": "Derniers Collectors"
+    },
+    "icons": {
+        "48": "icons/box.png"
+    }
+}
