@@ -7,6 +7,7 @@
         "alarms",
         "notifications",
         "storage",
+        "action",
         "https://chocobonplan.com/*"
     ],
     "background": {

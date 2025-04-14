@@ -136,9 +136,10 @@ async function checkForNewCollectors() {
   console.log("Nouveaux collectors à stocker :", newCollectors.length);
 
   // Récupérer l'état précédent
-  browser.storage.local.get(["previousCollectors"], (data) => {
+  browser.storage.local.get(["previousCollectors", "newCollectorCount"], (data) => {
     console.log("Données storage.get :", data);
     const previousCollectors = data.previousCollectors || [];
+    let newCollectorCount = data.newCollectorCount || 0;
     console.log("Collectors précédents récupérés :", previousCollectors.length);
 
     // Détecter les nouveaux collectors
@@ -147,8 +148,21 @@ async function checkForNewCollectors() {
     );
     console.log("Nouveaux collectors détectés :", addedCollectors.length);
 
-    // Envoyer une notification si nouveaux collectors
+    // Mettre à jour le compteur de nouveaux collectors
     if (addedCollectors.length > 0) {
+      newCollectorCount += addedCollectors.length;
+      browser.storage.local.set({ newCollectorCount }, () => {
+        console.log("Compteur de nouveaux collectors mis à jour :", newCollectorCount);
+      });
+
+      // Mettre à jour le badge si disponible
+      if (browser.action && browser.action.setBadgeText) {
+        browser.action.setBadgeText({ text: newCollectorCount.toString() });
+        browser.action.setBadgeBackgroundColor({ color: "#FF0000" }); // Rouge pour le badge
+        console.log("Badge mis à jour avec :", newCollectorCount);
+      }
+
+      // Envoyer une notification
       console.log("Envoi notification pour :", addedCollectors.map(c => c.title));
       browser.notifications.create({
         type: "basic",
