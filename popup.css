@@ -134,3 +134,16 @@ body {
     color: #666;
     font-style: italic;
 }
+
+.enlarged-image {
+    position: fixed;
+    width: 180px;
+    /* Taille agrandie */
+    height: 180px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
+    /* Très haut pour dépasser la popup */
+    pointer-events: none;
+    /* Évite d'interférer avec les clics */
+}

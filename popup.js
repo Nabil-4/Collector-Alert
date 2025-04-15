@@ -9,7 +9,6 @@ function loadCollectors(showFeedback = false) {
 
     if (!list) return;
 
-    // Vider la liste avant de recharger
     list.innerHTML = "";
 
     if (collectors.length === 0) {
@@ -44,10 +43,10 @@ function loadCollectors(showFeedback = false) {
         const likes = document.createElement("span");
         likes.className = "collector-likes";
         const likeText = document.createElement("span");
-        likeText.textContent = collector.isLevelMax ? "Max" : (collector.likes || 0);
+        likeText.textContent = collector.isLevelMax ? "Max " : (collector.likes + " " || 0);
         const likeIcon = document.createElement("span");
         likeIcon.className = "like-icon";
-        likeIcon.textContent = collector.isLevelMax ? "\u2605" : "\u2764"; // ★ ou ❤
+        likeIcon.textContent = collector.isLevelMax ? "\u2605" : "\u2764";
         likes.appendChild(likeText);
         likes.appendChild(likeIcon);
 
@@ -57,12 +56,47 @@ function loadCollectors(showFeedback = false) {
         div.appendChild(a);
         div.appendChild(likes);
         list.appendChild(div);
+
+        // Gestionnaire pour l'image agrandie
+        img.addEventListener("mouseenter", () => {
+          const enlargedImg = document.createElement("img");
+          enlargedImg.src = img.src;
+          enlargedImg.className = "enlarged-image";
+          imagePriceContainer.appendChild(enlargedImg);
+
+          // Position initiale pour éviter le clipping
+          const imgRect = img.getBoundingClientRect();
+          const popupRect = document.body.getBoundingClientRect();
+          const enlargedWidth = 180; // Correspond à la largeur dans CSS
+          const enlargedHeight = 180; // Correspond à la hauteur dans CSS
+          let left = imgRect.left - popupRect.left + imgRect.width + 10; // À droite de l'image originale
+          let top = imgRect.top - popupRect.top;
+
+          // Ajuster pour rester dans la popup
+          if (left + enlargedWidth > 380) { // 400px - 10px padding de chaque côté
+            left = imgRect.left - popupRect.left - enlargedWidth - 10; // Placer à gauche
+          }
+          if (left < 10) left = 10; // Marge minimale à gauche
+          if (top + enlargedHeight > popupRect.height - 10) {
+            top = popupRect.height - enlargedHeight - 10; // Ne pas dépasser le bas
+          }
+          if (top < 10) top = 10; // Marge minimale en haut
+
+          enlargedImg.style.left = `${left}px`;
+          enlargedImg.style.top = `${top}px`;
+        });
+
+        img.addEventListener("mouseleave", () => {
+          const enlargedImg = imagePriceContainer.querySelector(".enlarged-image");
+          if (enlargedImg) {
+            enlargedImg.remove();
+          }
+        });
       });
 
       list.scrollTop = scrollPosition;
     }
 
-    // Afficher le feedback si demandé
     if (showFeedback) {
       let feedback = document.getElementById("feedback-message");
       if (!feedback) {
@@ -74,7 +108,7 @@ function loadCollectors(showFeedback = false) {
       feedback.classList.add("show");
       setTimeout(() => {
         feedback.classList.remove("show");
-      }, 3000); // Disparaît après 3 secondes
+      }, 3000);
     }
   });
 }
@@ -100,6 +134,6 @@ if (list) {
 const refreshButton = document.getElementById("refresh-button");
 if (refreshButton) {
   refreshButton.addEventListener("click", () => {
-    loadCollectors(true); // Passer true pour afficher le feedback
+    loadCollectors(true);
   });
 }

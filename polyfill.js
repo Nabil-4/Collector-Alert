@@ -1,10 +1,14 @@
 // polyfill.js
-window.browser = window.browser || window.chrome;
+(function () {
+  if (!window.browser) {
+    window.browser = window.chrome || {};
+  }
 
-// Polyfill pour browser.action
-if (window.chrome && chrome.action && !browser.action) {
-  browser.action = {
-    setBadgeText: (details) => chrome.action.setBadgeText(details),
-    setBadgeBackgroundColor: (details) => chrome.action.setBadgeBackgroundColor(details)
-  };
-}
+  if (!window.browser.action) {
+    if (window.chrome && window.chrome.action) {
+      window.browser.action = window.chrome.action;
+    } else if (window.chrome && window.chrome.browserAction) {
+      window.browser.action = window.chrome.browserAction;
+    }
+  }
+})();

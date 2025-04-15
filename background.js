@@ -9,8 +9,8 @@ const CHECK_INTERVAL_MINUTES = 5;
 
 // Fonction pour convertir une URL relative en absolue
 function toAbsoluteUrl(relativeUrl) {
-  if (!relativeUrl) return `${DOMAIN}/bons-plans/c/editions-collectors/`; // Fallback
-  if (relativeUrl.startsWith("http")) return relativeUrl; // Déjà absolue
+  if (!relativeUrl) return `${DOMAIN}/bons-plans/c/editions-collectors/`;
+  if (relativeUrl.startsWith("http")) return relativeUrl;
   const cleanUrl = relativeUrl.startsWith("/") ? relativeUrl : `/${relativeUrl}`;
   return `${DOMAIN}${cleanUrl}`;
 }
@@ -28,7 +28,7 @@ function getImageUrl(imageElement) {
     const firstUrl = srcset.split(",")[0].trim().split(" ")[0];
     if (firstUrl.startsWith("http")) return firstUrl;
   }
-  return "https://chocobonplan.com/wp-content/uploads/placeholder.png"; // Fallback
+  return "https://chocobonplan.com/wp-content/uploads/placeholder.png";
 }
 
 // Fonction pour récupérer les collectors sur une page donnée
@@ -81,7 +81,7 @@ async function fetchCollectorsFromPage(page = 1) {
         const levelMaxElement = block.querySelector(".box-corner__right img[src*='level-max.png']");
         const isLevelMax = !!levelMaxElement;
         if (isLevelMax) {
-          likes = 200; // "Niveau max" = 200
+          likes = 200;
         } else {
           const likesElement = block.querySelector(".progress-radial__circle__overlay");
           const likesText = likesElement?.textContent.trim() || "0";
@@ -90,7 +90,7 @@ async function fetchCollectorsFromPage(page = 1) {
 
         // Date
         const dateElement = block.querySelector("footer time");
-        const datetime = dateElement?.getAttribute("datetime") || "2025-04-13"; // Fallback à aujourd'hui
+        const datetime = dateElement?.getAttribute("datetime") || "2025-04-13";
         const postDate = new Date(datetime);
         const isOlderThan7Days = postDate < sevenDaysAgo && !isNaN(postDate);
         console.log(`Collector: ${title}, Likes: ${likes}, Niveau max: ${isLevelMax}, Plus de 7 jours: ${isOlderThan7Days}`);
@@ -100,7 +100,7 @@ async function fetchCollectorsFromPage(page = 1) {
       .filter((collector) => {
         // Vérifier titre et likes
         if (!collector.title) return false;
-        const meetsLikes = collector.likes >= 200; // Strictement >= 200 ou Niveau max
+        const meetsLikes = collector.likes >= 200;
         console.log(`Filtre - ${collector.title}: Likes=${collector.likes} (>=200), Gardé=${meetsLikes}`);
         return meetsLikes;
       });
@@ -127,7 +127,7 @@ async function fetchCollectors() {
   }
 
   console.log(`Total collectors qualifiés : ${allCollectors.length}`);
-  return allCollectors.slice(0, 50); // Limite à 50
+  return allCollectors.slice(0, 50);
 }
 
 // Fonction pour vérifier les nouveaux collectors
@@ -135,34 +135,29 @@ async function checkForNewCollectors() {
   const newCollectors = await fetchCollectors();
   console.log("Nouveaux collectors à stocker :", newCollectors.length);
 
-  // Récupérer l'état précédent
   browser.storage.local.get(["previousCollectors", "newCollectorCount"], (data) => {
     console.log("Données storage.get :", data);
     const previousCollectors = data.previousCollectors || [];
     let newCollectorCount = data.newCollectorCount || 0;
     console.log("Collectors précédents récupérés :", previousCollectors.length);
 
-    // Détecter les nouveaux collectors
     const addedCollectors = newCollectors.filter(
       (collector) => !previousCollectors.some((prev) => prev.url === collector.url)
     );
     console.log("Nouveaux collectors détectés :", addedCollectors.length);
 
-    // Mettre à jour le compteur de nouveaux collectors
     if (addedCollectors.length > 0) {
       newCollectorCount += addedCollectors.length;
-      browser.storage.local.set({ newCollectorCount }, () => {
-        console.log("Compteur de nouveaux collectors mis à jour :", newCollectorCount);
-      });
+      browser.storage.local.set({ newCollectorCount });
+      console.log("Compteur de nouveaux collectors mis à jour :", newCollectorCount);
 
-      // Mettre à jour le badge si disponible
-      if (browser.action && browser.action.setBadgeText) {
-        browser.action.setBadgeText({ text: newCollectorCount.toString() });
-        browser.action.setBadgeBackgroundColor({ color: "#FF0000" }); // Rouge pour le badge
+      const actionAPI = browser.action || (chrome && chrome.action);
+      if (actionAPI && actionAPI.setBadgeText) {
+        actionAPI.setBadgeText({ text: newCollectorCount.toString() });
+        actionAPI.setBadgeBackgroundColor({ color: "#FF0000" });
         console.log("Badge mis à jour avec :", newCollectorCount);
       }
 
-      // Envoyer une notification
       console.log("Envoi notification pour :", addedCollectors.map(c => c.title));
       browser.notifications.create({
         type: "basic",
@@ -180,7 +175,6 @@ async function checkForNewCollectors() {
       });
     }
 
-    // Mettre à jour le stockage
     browser.storage.local.set({ previousCollectors: newCollectors }, () => {
       if (chrome.runtime.lastError) {
         console.error("Erreur stockage :", chrome.runtime.lastError.message);
