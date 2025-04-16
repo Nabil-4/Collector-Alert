@@ -1,7 +1,7 @@
 // popup.js
 
 // Fonction pour charger et afficher les collectors
-function loadCollectors(showFeedback = false) {
+function loadCollectors(showFeedback = false, isError = false) {
   browser.storage.local.get(["previousCollectors", "scrollPosition"], (data) => {
     const collectors = Array.isArray(data.previousCollectors) ? data.previousCollectors : [];
     const scrollPosition = Number(data.scrollPosition) || 0;
@@ -59,37 +59,43 @@ function loadCollectors(showFeedback = false) {
 
         // Gestionnaire pour l'image agrandie
         img.addEventListener("mouseenter", () => {
+          const existingEnlarged = document.querySelector(".enlarged-image");
+          if (existingEnlarged) existingEnlarged.remove();
+
           const enlargedImg = document.createElement("img");
           enlargedImg.src = img.src;
           enlargedImg.className = "enlarged-image";
-          imagePriceContainer.appendChild(enlargedImg);
+          document.body.appendChild(enlargedImg);
 
-          // Position initiale pour éviter le clipping
           const imgRect = img.getBoundingClientRect();
           const popupRect = document.body.getBoundingClientRect();
-          const enlargedWidth = 180; // Correspond à la largeur dans CSS
-          const enlargedHeight = 180; // Correspond à la hauteur dans CSS
-          let left = imgRect.left - popupRect.left + imgRect.width + 10; // À droite de l'image originale
-          let top = imgRect.top - popupRect.top;
+          const enlargedWidth = 180;
+          const enlargedHeight = 180;
+          let left = imgRect.left + imgRect.width + 10;
+          let top = imgRect.top;
 
-          // Ajuster pour rester dans la popup
-          if (left + enlargedWidth > 380) { // 400px - 10px padding de chaque côté
-            left = imgRect.left - popupRect.left - enlargedWidth - 10; // Placer à gauche
+          if (left + enlargedWidth > popupRect.left + 380) {
+            left = imgRect.left - enlargedWidth - 10;
           }
-          if (left < 10) left = 10; // Marge minimale à gauche
-          if (top + enlargedHeight > popupRect.height - 10) {
-            top = popupRect.height - enlargedHeight - 10; // Ne pas dépasser le bas
+          if (left < popupRect.left + 10) left = popupRect.left + 10;
+          if (top + enlargedHeight > popupRect.top + popupRect.height - 10) {
+            top = popupRect.top + popupRect.height - enlargedHeight - 10;
           }
-          if (top < 10) top = 10; // Marge minimale en haut
+          if (top < popupRect.top + 10) top = popupRect.top + 10;
 
           enlargedImg.style.left = `${left}px`;
           enlargedImg.style.top = `${top}px`;
+
+          setTimeout(() => {
+            enlargedImg.classList.add("visible");
+          }, 0);
         });
 
         img.addEventListener("mouseleave", () => {
-          const enlargedImg = imagePriceContainer.querySelector(".enlarged-image");
+          const enlargedImg = document.querySelector(".enlarged-image");
           if (enlargedImg) {
-            enlargedImg.remove();
+            enlargedImg.classList.remove("visible");
+            setTimeout(() => enlargedImg.remove(), 200);
           }
         });
       });
@@ -102,9 +108,9 @@ function loadCollectors(showFeedback = false) {
       if (!feedback) {
         feedback = document.createElement("div");
         feedback.id = "feedback-message";
-        feedback.textContent = "Liste actualisée !";
         list.insertAdjacentElement("beforebegin", feedback);
       }
+      feedback.textContent = isError ? "Erreur lors de l'actualisation." : "Liste actualisée !";
       feedback.classList.add("show");
       setTimeout(() => {
         feedback.classList.remove("show");
@@ -133,7 +139,27 @@ if (list) {
 // Bouton d'actualisation
 const refreshButton = document.getElementById("refresh-button");
 if (refreshButton) {
+  // Créer l'élément de l'animation de chargement
+  const loadingSpinner = document.createElement("div");
+  loadingSpinner.className = "loading-spinner";
+  refreshButton.parentNode.insertBefore(loadingSpinner, refreshButton.nextSibling);
+
   refreshButton.addEventListener("click", () => {
-    loadCollectors(true);
+    // Masquer le bouton et afficher l'animation
+    refreshButton.style.display = "none";
+    loadingSpinner.style.display = "block";
+
+    // Envoyer un message à background.js
+    browser.runtime.sendMessage({ action: "checkForNewCollectors" }, (response) => {
+      // Restaurer le bouton et masquer l'animation
+      refreshButton.style.display = "block";
+      loadingSpinner.style.display = "none";
+
+      if (response && response.status === "success") {
+        loadCollectors(true); // Rafraîchir l'affichage
+      } else {
+        loadCollectors(true, true); // Afficher un message d'erreur
+      }
+    });
   });
 }

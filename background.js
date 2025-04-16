@@ -198,6 +198,19 @@ browser.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
+// Écouter les messages de popup.js
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "checkForNewCollectors") {
+    checkForNewCollectors().then(() => {
+      sendResponse({ status: "success" });
+    }).catch((error) => {
+      console.error("Erreur lors de l'actualisation manuelle :", error);
+      sendResponse({ status: "error", error: error.message });
+    });
+    return true; // Indique que la réponse est asynchrone
+  }
+});
+
 // Vérifier au démarrage
 console.log("Extension démarrée, vérification initiale...");
 checkForNewCollectors();
